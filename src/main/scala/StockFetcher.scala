@@ -1,7 +1,7 @@
-import scala.concurrent.ExecutionContext.Implicits._
 import play.api.libs.json._
 import play.api.libs.ws.JsonBodyReadables._
 
+import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
 class StockFetcher {
@@ -17,7 +17,7 @@ class StockFetcher {
     }
   }
 
-  def fetchStock(filter: String): Future[List[Stock]] = {
+  private def fetchStock(filter: String): Future[List[Stock]] = {
     Http.client.url(s"http://www.tse.com.tw/zh/api/codeFilters?filter=$filter").get.map {
       response =>
         response.body[JsValue].as[ResStocks].resualt.map {
