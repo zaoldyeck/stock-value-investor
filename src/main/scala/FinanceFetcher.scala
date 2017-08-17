@@ -1,29 +1,21 @@
-//import org.joda.time.DateTime
 import java.util.Date
 
 import play.api.libs.json.JsValue
-import play.api.libs.json._
-import play.api.libs.ws.DefaultWSCookie
-
-import scala.concurrent.Future
 import play.api.libs.ws.JsonBodyReadables._
-import play.api.libs.ws.ahc.AhcCurlRequestLogger
 
 import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.Future
 
 class FinanceFetcher {
   // http://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date=20170801&stockNo=2330
   def getPrice(id: String, date: Date): Future[Double] = {
     Http.client.url(s"http://mis.twse.com.tw/stock/fibest.jsp?stock=$id").get.flatMap {
       response =>
-        response.
         Http.client.url(s"http://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_$id.tw&json=1&delay=0&_=${date.getTime}")
-          .withRequestFilter(AhcCurlRequestLogger())
+          .addCookies(response.cookies: _*)
           .get
     } map {
       response =>
-        println("come in")
-        println(response.body)
         (response.body[JsValue].apply("msgArray")(0) \ "z").as[String].toDouble
     }
   }
