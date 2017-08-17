@@ -29,7 +29,7 @@ class StockFetcher {
 
   case class ResStocks(filter: String, resualt: List[String])
 
-  implicit val stocksReads: Reads[ResStocks] = Json.reads[ResStocks]
+  implicit val resStocksReads: Reads[ResStocks] = Json.reads[ResStocks]
 
   case class Stock(id: String, name: String)
 
