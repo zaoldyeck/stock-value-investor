@@ -1,3 +1,4 @@
+import java.text.SimpleDateFormat
 import java.util.Date
 
 import play.api.libs.json.{JsArray, JsValue, Json, Reads}
@@ -23,11 +24,15 @@ class FinanceFetcher {
   }
 
   def getHistoryPrice(id: String, year: Int, month: Int): Future[List[HistoryPrice]] = {
+    HistoryPrice("1", "1", "1", "1", "1", "1", "1", "1", "1")
     val monthString: String = if (month < 10) "0" + month else month.toString
     Http.client.url(s"http://www.twse.com.tw/en/exchangeReport/STOCK_DAY?response=json&date=$year${monthString}01&stockNo=$id").get.map {
       response =>
-        val stringses: immutable.Seq[List[String]] = response.body[JsValue].apply("data").as[List[List[String]]]
-        //stringses.map(HistoryPrice(_:*))
+        response.body[JsValue].apply("data").as[List[(String, String, String, String, String, String, String, String, String)]]
+          .map(s => {
+            (HistoryPrice _)
+          })
+
     }
   }
 
@@ -47,7 +52,26 @@ class FinanceFetcher {
                           lowestPrice: Double,
                           closingPrice: Double,
                           change: Double,
-                          transaction: Int)
+                          transaction: Int) {
+  }
+
+  def gogo(a: Int, b: Int): Int = {
+    a + b
+  }
+
+  (gogo _).tupled((1, 2))
+
+  object HistoryPriceA {
+    def apply(date: String,
+              tradeVolume: String,
+              tradeValue: String,
+              openingPrice: String,
+              highestPrice: String,
+              lowestPrice: String,
+              closingPrice: String,
+              change: String,
+              transaction: String): HistoryPrice = HistoryPrice(new SimpleDateFormat("yyyy/MM/dd").parse(date), tradeVolume.toInt, tradeValue.toDouble, openingPrice.toDouble, highestPrice.toDouble, lowestPrice.toDouble, closingPrice.toDouble, change.toDouble, transaction.toInt)
+  }
 
   implicit val historyPriceReads: Reads[HistoryPrice] = Json.reads[HistoryPrice]
 }
