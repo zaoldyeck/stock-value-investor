@@ -1,20 +1,19 @@
-import java.text.SimpleDateFormat
+import java.text.{DecimalFormat, SimpleDateFormat}
 import java.util.Date
 
-import play.api.libs.json.{JsArray, JsValue, Json, Reads}
+import play.api.libs.json.JsValue
 import play.api.libs.ws.JsonBodyReadables._
 import play.api.libs.ws.ahc.AhcCurlRequestLogger
 
-import scala.collection.immutable
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
 class FinanceFetcher {
-  // http://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date=20170801&stockNo=2330
   def getRealTimePrice(id: String): Future[Double] = {
     Http.client.url(s"http://mis.twse.com.tw/stock/fibest.jsp?stock=$id").get.flatMap {
       response =>
         Http.client.url(s"http://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_$id.tw&json=1&delay=0&_=${new Date().getTime}")
+          //.withRequestFilter(AhcCurlRequestLogger())
           .addCookies(response.cookies: _*)
           .get
     } map {
@@ -24,15 +23,16 @@ class FinanceFetcher {
   }
 
   def getHistoryPrice(id: String, year: Int, month: Int): Future[List[HistoryPrice]] = {
-    HistoryPrice("1", "1", "1", "1", "1", "1", "1", "1", "1")
-    val monthString: String = if (month < 10) "0" + month else month.toString
-    Http.client.url(s"http://www.twse.com.tw/en/exchangeReport/STOCK_DAY?response=json&date=$year${monthString}01&stockNo=$id").get.map {
+    Http.client.url("http://www.twse.com.tw").get.flatMap {
+      response =>
+        val monthString: String = if (month < 10) "0" + month else month.toString
+        Http.client.url(s"http://www.twse.com.tw/en/exchangeReport/STOCK_DAY?response=json&date=$year${monthString}01&stockNo=$id")
+          .addCookies(response.cookies: _*)
+          .get
+    } map {
       response =>
         response.body[JsValue].apply("data").as[List[(String, String, String, String, String, String, String, String, String)]]
-          .map(s => {
-            (HistoryPrice _)
-          })
-
+          .map((toHistoryPrice _).tupled)
     }
   }
 
@@ -52,26 +52,27 @@ class FinanceFetcher {
                           lowestPrice: Double,
                           closingPrice: Double,
                           change: Double,
-                          transaction: Int) {
+                          transaction: Int)
+
+  def toHistoryPrice(date: String,
+                     tradeVolume: String,
+                     tradeValue: String,
+                     openingPrice: String,
+                     highestPrice: String,
+                     lowestPrice: String,
+                     closingPrice: String,
+                     change: String,
+                     transaction: String): HistoryPrice = {
+    val decimalFormat = new DecimalFormat()
+    HistoryPrice(
+      new SimpleDateFormat("yyyy/MM/dd").parse(date),
+      decimalFormat.parse(tradeVolume).intValue,
+      decimalFormat.parse(tradeValue).doubleValue,
+      decimalFormat.parse(openingPrice).doubleValue,
+      decimalFormat.parse(highestPrice).doubleValue,
+      decimalFormat.parse(lowestPrice).doubleValue,
+      decimalFormat.parse(closingPrice).doubleValue,
+      decimalFormat.parse(change.trim.replace("+", "")).doubleValue,
+      decimalFormat.parse(transaction).intValue)
   }
-
-  def gogo(a: Int, b: Int): Int = {
-    a + b
-  }
-
-  (gogo _).tupled((1, 2))
-
-  object HistoryPriceA {
-    def apply(date: String,
-              tradeVolume: String,
-              tradeValue: String,
-              openingPrice: String,
-              highestPrice: String,
-              lowestPrice: String,
-              closingPrice: String,
-              change: String,
-              transaction: String): HistoryPrice = HistoryPrice(new SimpleDateFormat("yyyy/MM/dd").parse(date), tradeVolume.toInt, tradeValue.toDouble, openingPrice.toDouble, highestPrice.toDouble, lowestPrice.toDouble, closingPrice.toDouble, change.toDouble, transaction.toInt)
-  }
-
-  implicit val historyPriceReads: Reads[HistoryPrice] = Json.reads[HistoryPrice]
 }

@@ -3,6 +3,7 @@ import java.util.Date
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.ExecutionContext.Implicits._
+import scala.util.{Failure, Success}
 
 object Main {
   def main(args: Array[String]): Unit = {
@@ -31,6 +32,9 @@ object Main {
         response.foreach(historyPrice => logger.info(historyPrice.toString))
     } andThen {
       case _ => Http.terminate()
+    } onComplete {
+      case Success(_) =>
+      case Failure(t) => t.printStackTrace()
     }
   }
 }
