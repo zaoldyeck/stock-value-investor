@@ -8,7 +8,7 @@ import scala.util.{Failure, Success}
 object Main {
   def main(args: Array[String]): Unit = {
     val logger: Logger = LoggerFactory.getLogger(this.getClass)
-    //        new StockFetcher().fetchAllStocks().map {
+    //        new StockFetcher().getAllStocks().map {
     //          stocks => stocks.foreach(println)
     //        } andThen {
     //          case _ => Http.terminate()
