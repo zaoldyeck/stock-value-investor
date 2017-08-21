@@ -31,8 +31,7 @@ class FinanceFetcher {
           .get
     } map {
       response =>
-        response.body[JsValue].apply("data").as[List[(String, String, String, String, String, String, String, String, String)]]
-          .map((toHistoryPrice _).tupled)
+        response.body[JsValue].apply("data").as[List[ResHistoryPrice]].map(HistoryPrice(_))
     }
   }
 
@@ -44,6 +43,8 @@ class FinanceFetcher {
 
   case class FinanceReport(meanPER: Double, meanROA: Double)
 
+  type ResHistoryPrice = (String, String, String, String, String, String, String, String, String)
+
   case class HistoryPrice(date: Date,
                           tradeVolume: Int,
                           tradeValue: Double,
@@ -54,25 +55,30 @@ class FinanceFetcher {
                           change: Double,
                           transaction: Int)
 
-  def toHistoryPrice(date: String,
-                     tradeVolume: String,
-                     tradeValue: String,
-                     openingPrice: String,
-                     highestPrice: String,
-                     lowestPrice: String,
-                     closingPrice: String,
-                     change: String,
-                     transaction: String): HistoryPrice = {
-    val decimalFormat = new DecimalFormat()
-    HistoryPrice(
-      new SimpleDateFormat("yyyy/MM/dd").parse(date),
-      decimalFormat.parse(tradeVolume).intValue,
-      decimalFormat.parse(tradeValue).doubleValue,
-      decimalFormat.parse(openingPrice).doubleValue,
-      decimalFormat.parse(highestPrice).doubleValue,
-      decimalFormat.parse(lowestPrice).doubleValue,
-      decimalFormat.parse(closingPrice).doubleValue,
-      decimalFormat.parse(change.trim.replace("+", "")).doubleValue,
-      decimalFormat.parse(transaction).intValue)
+  object HistoryPrice {
+    def apply(resHistoryPrice: ResHistoryPrice): HistoryPrice = {
+      val (
+        date: String,
+        tradeVolume: String,
+        tradeValue: String,
+        openingPrice: String,
+        highestPrice: String,
+        lowestPrice: String,
+        closingPrice: String,
+        change: String,
+        transaction: String) = resHistoryPrice
+
+      val decimalFormat = new DecimalFormat()
+      HistoryPrice(
+        new SimpleDateFormat("yyyy/MM/dd").parse(date),
+        decimalFormat.parse(tradeVolume).intValue,
+        decimalFormat.parse(tradeValue).doubleValue,
+        decimalFormat.parse(openingPrice).doubleValue,
+        decimalFormat.parse(highestPrice).doubleValue,
+        decimalFormat.parse(lowestPrice).doubleValue,
+        decimalFormat.parse(closingPrice).doubleValue,
+        decimalFormat.parse(change.trim.replace("+", "")).doubleValue,
+        decimalFormat.parse(transaction).intValue)
+    }
   }
 }
