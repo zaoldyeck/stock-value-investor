@@ -7,6 +7,11 @@ import play.api.libs.ws.ahc.AhcCurlRequestLogger
 
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
+import net.ruippeixotog.scalascraper.browser.JsoupBrowser
+import net.ruippeixotog.scalascraper.model._
+import net.ruippeixotog.scalascraper.dsl.DSL._
+import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
+import net.ruippeixotog.scalascraper.dsl.DSL.Parse._
 
 class FinanceFetcher {
   def getRealTimePrice(id: String): Future[Double] = {
@@ -40,6 +45,12 @@ class FinanceFetcher {
   //
   //    }
   //  }
+
+  def getFinance(id: String) = {
+    val doc = JsoupBrowser().get(s"https://goodinfo.tw/StockInfo/StockBzPerformance.asp?STOCK_ID=$id&YEAR_PERIOD=3&RPT_CAT=M_YEAR")
+    doc >> text("#header")
+    //doc >> body > table:nth-child(2) > tbody > tr > td:nth-child(3) > table > tbody > tr > td > table.solid_1_padding_3_0_tbl > tbody > tr:nth-child(8) > td:nth-child(2)
+  }
 
   case class FinanceReport(meanPER: Double, meanROA: Double)
 
@@ -81,4 +92,5 @@ class FinanceFetcher {
         decimalFormat.parse(transaction).intValue)
     }
   }
+
 }

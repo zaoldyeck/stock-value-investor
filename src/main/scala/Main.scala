@@ -27,14 +27,14 @@ object Main {
     //    }
 
     val financeFetcher = new FinanceFetcher()
-    financeFetcher.getHistoryPrice("2330", 2016, 9) map {
-      response =>
-        response.foreach(historyPrice => logger.info(historyPrice.toString))
-    } andThen {
-      case _ => Http.terminate()
-    } onComplete {
-      case Success(_) =>
-      case Failure(t) => t.printStackTrace()
-    }
+//    financeFetcher.getHistoryPrice("2330", 2016, 9) map {
+//      response =>
+//        response.foreach(historyPrice => logger.info(historyPrice.toString))
+//    } andThen {
+//      case _ => Http.terminate()
+//    } onComplete {
+//      case Success(_) =>
+//      case Failure(t) => t.printStackTrace()
+//    }
   }
 }
