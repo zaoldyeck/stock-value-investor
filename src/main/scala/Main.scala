@@ -40,28 +40,30 @@ object Main {
     //      case Failure(t) => t.printStackTrace()
     //    }
 
-    new FinanceFetcher().getFinance("2330", 2016).map {
-      finance => logger.info(finance.toString)
+    //    new FinanceFetcher().getFinance("2330", 2016).map {
+    //      finance => logger.info(finance.toString)
+    //    } andThen {
+    //      case _ => Http.terminate()
+    //    } onComplete {
+    //      case Success(_) =>
+    //      case Failure(t) => t.printStackTrace()
+    //    }
+
+    //Magic Formula
+    {
+      for {
+        stocks <- new StockFetcher().getAllStocks
+        finances <- Future.traverse(stocks) {
+          stock => new FinanceFetcher().getFinance(stock.id, 2016)
+        }
+      } yield {
+        finances.sortBy(_.id).foreach(f => logger.info(f.toString))
+      }
     } andThen {
       case _ => Http.terminate()
     } onComplete {
       case Success(_) =>
       case Failure(t) => t.printStackTrace()
     }
-
-    //Magic Formula
-    //    val eventualUnit: Future[Unit] = for {
-    //      stocks <- new StockFetcher().getAllStocks
-    //      finances <- Future.traverse(stocks) {
-    //        stock => new FinanceFetcher().getFinance("2330", Duration.ThreeYear)
-    //      }
-    //    } yield {
-    //      finances.foreach(f => logger.info(f.toString))
-    //    }
-    //
-    //    eventualUnit.onComplete {
-    //      case Success(_) =>
-    //      case Failure(t) => t.printStackTrace()
-    //    }
   }
 }
