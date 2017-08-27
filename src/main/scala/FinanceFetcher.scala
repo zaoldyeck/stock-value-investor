@@ -1,44 +1,12 @@
-import java.text.{DecimalFormat, SimpleDateFormat}
-import java.util.Date
-
-import play.api.libs.json.JsValue
-import play.api.libs.ws.JsonBodyReadables._
-import play.api.libs.ws.ahc.AhcCurlRequestLogger
+import net.ruippeixotog.scalascraper.browser.{Browser, JsoupBrowser}
+import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
+import net.ruippeixotog.scalascraper.dsl.DSL._
 
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.concurrent.Future
-import net.ruippeixotog.scalascraper.browser.JsoupBrowser
-import net.ruippeixotog.scalascraper.model._
-import net.ruippeixotog.scalascraper.dsl.DSL._
-import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
-import net.ruippeixotog.scalascraper.dsl.DSL.Parse._
+import scala.concurrent.{Await, Future}
 
 class FinanceFetcher {
-  def getRealTimePrice(id: String): Future[Double] = {
-    Http.client.url(s"http://mis.twse.com.tw/stock/fibest.jsp?stock=$id").get.flatMap {
-      response =>
-        Http.client.url(s"http://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_$id.tw&json=1&delay=0&_=${new Date().getTime}")
-          //.withRequestFilter(AhcCurlRequestLogger())
-          .addCookies(response.cookies: _*)
-          .get
-    } map {
-      response =>
-        (response.body[JsValue].apply("msgArray")(0) \ "z").as[String].toDouble
-    }
-  }
-
-  def getHistoryPrice(id: String, year: Int, month: Int): Future[List[HistoryPrice]] = {
-    Http.client.url("http://www.twse.com.tw").get.flatMap {
-      response =>
-        val monthString: String = if (month < 10) "0" + month else month.toString
-        Http.client.url(s"http://www.twse.com.tw/en/exchangeReport/STOCK_DAY?response=json&date=$year${monthString}01&stockNo=$id")
-          .addCookies(response.cookies: _*)
-          .get
-    } map {
-      response =>
-        response.body[JsValue].apply("data").as[List[ResHistoryPrice]].map(HistoryPrice(_))
-    }
-  }
+  implicit def stringToDouble(s: String): Double = java.lang.Double.parseDouble(s.filter(char => Character.isDigit(char) || char == '.'))
 
   //  def getFinanceReport(id: String, fromYear: Int, fromSeason: Int, toYear: Int, toSeason: Int): Future[FinanceReport] = {
   //    Http.client.url(s"https://statementdog.com/api/v1/fundamentals/$id/$fromYear/$fromSeason/$toYear/$toSeason").get.map {
@@ -46,51 +14,46 @@ class FinanceFetcher {
   //    }
   //  }
 
-  def getFinance(id: String) = {
-    val doc = JsoupBrowser().get(s"https://goodinfo.tw/StockInfo/StockBzPerformance.asp?STOCK_ID=$id&YEAR_PERIOD=3&RPT_CAT=M_YEAR")
-    doc >> text("#header")
-    //doc >> body > table:nth-child(2) > tbody > tr > td:nth-child(3) > table > tbody > tr > td > table.solid_1_padding_3_0_tbl > tbody > tr:nth-child(8) > td:nth-child(2)
+  def getFinance(id: String, duration: Duration): Future[Finance] = Future {
+    val doc = JsoupBrowser().get(s"https://goodinfo.tw/StockInfo/StockBzPerformance.asp?STOCK_ID=$id&YEAR_PERIOD=${duration.year}&RPT_CAT=M_YEAR")
+    val PER: String = doc >> text("body > table:nth-child(2) > tbody > tr > td:nth-child(3) > table > tbody > tr > td > table:nth-child(1) > tbody > tr > td > table > tbody > tr:nth-child(5) > td:nth-child(6)")
+    val minROA: String = doc >> text("body > table:nth-child(2) > tbody > tr > td:nth-child(3) > table > tbody > tr > td > table.solid_1_padding_3_0_tbl > tbody > tr:nth-child(8) > td:nth-child(4)")
+    Finance(PER, minROA)
   }
 
-  case class FinanceReport(meanPER: Double, meanROA: Double)
+  def getFinance(id: String, year: Int): Future[Finance] = {
+    Http.client.url("http://mops.twse.com.tw/mops/web/t05st22_q1").get().flatMap {
+      response =>
+        Http.client.url("http://mops.twse.com.tw/mops/web/ajax_t05st22").addCookies(response.cookies: _*).post(
+          Map(
+            "encodeURIComponent" -> "1",
+            "run" -> "Y",
+            "step" -> "1",
+            "TYPEK" -> "sii",
+            "year" -> (year - 1911).toString,
+            "isnew" -> "false",
+            "co_id" -> id.toString,
+            "firstin" -> "1",
+            "off" -> "1",
+            "ifrs" -> "Y"))
+    } map {
+      response =>
+        def average(value: Double*): Double = value.sum / value.length
 
-  type ResHistoryPrice = (String, String, String, String, String, String, String, String, String)
+        val doc: Browser#DocumentType = JsoupBrowser().parseString(response.body)
+        val EPS: String = doc >> text("body > center:nth-child(6) > table > tbody > tr:nth-child(17) > td:nth-child(4)")
+        val price: Double = Await.result(new PriceFetcher().getRealTimePriceFromGoogleFinance(id), scala.concurrent.duration.Duration.Inf)
+        val PER: Double = price / EPS
 
-  case class HistoryPrice(date: Date,
-                          tradeVolume: Int,
-                          tradeValue: Double,
-                          openingPrice: Double,
-                          highestPrice: Double,
-                          lowestPrice: Double,
-                          closingPrice: Double,
-                          change: Double,
-                          transaction: Int)
+        val ROA: String = doc >> text("body > center:nth-child(6) > table > tbody > tr:nth-child(13) > td:nth-child(5)")
+        val lastYearROA: String = doc >> text("body > center:nth-child(6) > table > tbody > tr:nth-child(13) > td:nth-child(4)")
+        val theYearBeforeLastROA: String = doc >> text("body > center:nth-child(6) > table > tbody > tr:nth-child(13) > td:nth-child(3)")
+        val meanROA: Double = average(ROA, lastYearROA, theYearBeforeLastROA)
 
-  object HistoryPrice {
-    def apply(resHistoryPrice: ResHistoryPrice): HistoryPrice = {
-      val (
-        date: String,
-        tradeVolume: String,
-        tradeValue: String,
-        openingPrice: String,
-        highestPrice: String,
-        lowestPrice: String,
-        closingPrice: String,
-        change: String,
-        transaction: String) = resHistoryPrice
-
-      val decimalFormat = new DecimalFormat()
-      HistoryPrice(
-        new SimpleDateFormat("yyyy/MM/dd").parse(date),
-        decimalFormat.parse(tradeVolume).intValue,
-        decimalFormat.parse(tradeValue).doubleValue,
-        decimalFormat.parse(openingPrice).doubleValue,
-        decimalFormat.parse(highestPrice).doubleValue,
-        decimalFormat.parse(lowestPrice).doubleValue,
-        decimalFormat.parse(closingPrice).doubleValue,
-        decimalFormat.parse(change.trim.replace("+", "")).doubleValue,
-        decimalFormat.parse(transaction).intValue)
+        Finance(PER, meanROA)
     }
   }
+
+  case class Finance(PER: Double, meanROA: Double)
 
 }

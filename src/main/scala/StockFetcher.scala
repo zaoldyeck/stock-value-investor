@@ -27,9 +27,9 @@ class StockFetcher {
     }
   }
 
-  case class ResStocks(filter: String, resualt: List[String])
+  private case class ResStocks(filter: String, resualt: List[String])
 
-  implicit val resStocksReads: Reads[ResStocks] = Json.reads[ResStocks]
+  implicit private val resStocksReads: Reads[ResStocks] = Json.reads[ResStocks]
 
   case class Stock(id: String, name: String)
 
