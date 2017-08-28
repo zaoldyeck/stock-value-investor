@@ -15,6 +15,7 @@ class PriceFetcher {
     Http.client.url(s"http://mis.twse.com.tw/stock/fibest.jsp?stock=$id").get.flatMap {
       response =>
         Http.client.url(s"http://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_$id.tw&json=1&delay=0&_=${new Date().getTime}")
+          //Http.client.url(s"http://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_$id.tw|tse_0000.tw&json=1&delay=0&_=${new Date().getTime}")
           //.withRequestFilter(AhcCurlRequestLogger())
           .addCookies(response.cookies: _*)
           .get
