@@ -2,7 +2,7 @@ name := "stocks"
 
 version := "1.0"
 
-scalaVersion := "2.12.1"
+scalaVersion := "2.12.3"
 
 libraryDependencies ++= Seq(
   "com.google.inject" % "guice" % "4.1.0",
