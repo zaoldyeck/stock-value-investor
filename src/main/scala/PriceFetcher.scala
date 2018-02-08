@@ -22,10 +22,10 @@ class PriceFetcher {
     } map {
       response =>
         (response.body[JsValue].apply("msgArray")(0) \ "z").as[String].toDouble
-    } recover {
+    } recoverWith {
       case e: Exception =>
         e.printStackTrace()
-        0
+        getRealTimePrice(id)
     }
   }
 
@@ -34,10 +34,10 @@ class PriceFetcher {
       response =>
         val doc: Browser#DocumentType = JsoupBrowser().parseString(response.body)
         (doc >> text("#ref_674465_l")).toDouble
-    } recover {
+    } recoverWith {
       case e: Exception =>
         e.printStackTrace()
-        0
+        getRealTimePriceFromGoogleFinance(id)
     }
   }
 

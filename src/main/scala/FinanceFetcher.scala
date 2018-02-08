@@ -3,7 +3,8 @@ import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL._
 
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
+import scala.util.{Failure, Success, Try}
 
 class FinanceFetcher {
   implicit def stringToDouble(s: String): Double = java.lang.Double.parseDouble(s.filter(char => Character.isDigit(char) || char == '.'))
@@ -14,11 +15,24 @@ class FinanceFetcher {
   //    }
   //  }
 
-  def getFinance(id: String, duration: Duration): Future[Finance] = Future {
-    val doc = JsoupBrowser().get(s"https://goodinfo.tw/StockInfo/StockBzPerformance.asp?STOCK_ID=$id&YEAR_PERIOD=${duration.year}&RPT_CAT=M_YEAR")
-    val PER: String = doc >> text("body > table:nth-child(2) > tbody > tr > td:nth-child(3) > table > tbody > tr > td > table:nth-child(1) > tbody > tr > td > table > tbody > tr:nth-child(5) > td:nth-child(6)")
-    val minROA: String = doc >> text("body > table:nth-child(2) > tbody > tr > td:nth-child(3) > table > tbody > tr > td > table.solid_1_padding_3_0_tbl > tbody > tr:nth-child(8) > td:nth-child(4)")
-    Finance(id, PER, minROA)
+  def getFinance(id: String, duration: Duration): Future[Finance] = {
+    val promise = Promise[Finance]
+    Future {
+      Try {
+        val doc = JsoupBrowser().get(s"https://goodinfo.tw/StockInfo/StockBzPerformance.asp?STOCK_ID=$id&YEAR_PERIOD=${duration.year}&RPT_CAT=M_YEAR")
+        val PER: String = doc >> text("body > table:nth-child(2) > tbody > tr > td:nth-child(3) > table > tbody > tr > td > table:nth-child(1) > tbody > tr > td > table > tbody > tr:nth-child(5) > td:nth-child(6)")
+        val minROA: String = doc >> text("body > table:nth-child(2) > tbody > tr > td:nth-child(3) > table > tbody > tr > td > table.solid_1_padding_3_0_tbl > tbody > tr:nth-child(8) > td:nth-child(4)")
+        Finance(id, PER, minROA)
+      } match {
+        case Success(finance) => promise.success(finance)
+        case Failure(e) => promise.failure(e)
+      }
+    }
+    promise.future
+  } recoverWith {
+    case e: Exception =>
+      e.printStackTrace()
+      getFinance(id, duration)
   }
 
   def getFinance(id: String, year: Int): Future[Finance] = {
@@ -38,7 +52,7 @@ class FinanceFetcher {
               "off" -> "1",
               "ifrs" -> "Y"))
       }
-      price <- new PriceFetcher().getRealTimePriceFromGoogleFinance(id)
+      price <- new PriceFetcher().getRealTimePrice(id)
     } yield {
       def average(value: Double*): Double = value.sum / value.length
 
@@ -53,10 +67,10 @@ class FinanceFetcher {
 
       Finance(id, PER, meanROA)
     }
-  } recover {
+  } recoverWith {
     case e: Exception =>
       e.printStackTrace()
-      Finance(id, 0, 0)
+      getFinance(id, year)
   }
 
   case class Finance(id: String, PER: Double, meanROA: Double)

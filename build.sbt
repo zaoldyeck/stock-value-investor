@@ -1,4 +1,4 @@
-name := "stocks"
+name := "stock-value-investor"
 
 version := "1.0"
 
