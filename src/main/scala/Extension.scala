@@ -1,7 +1,7 @@
 object Extension {
 
   implicit class RichString(s: String) {
-    //to
+    def toDigit: Double = java.lang.Double.parseDouble(s.filter(char => Character.isDigit(char) || char == '.'))
   }
 
 }

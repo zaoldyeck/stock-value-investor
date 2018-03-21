@@ -2,13 +2,13 @@ import java.text.{DecimalFormat, SimpleDateFormat}
 import java.util.Date
 
 import net.ruippeixotog.scalascraper.browser.{Browser, JsoupBrowser}
+import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
+import net.ruippeixotog.scalascraper.dsl.DSL._
 import play.api.libs.json.JsValue
 import play.api.libs.ws.JsonBodyReadables._
 
-import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
-import net.ruippeixotog.scalascraper.dsl.DSL._
 
 class PriceFetcher {
   def getRealTimePrice(id: String): Future[Double] = {
