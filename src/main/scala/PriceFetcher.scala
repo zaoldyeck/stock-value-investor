@@ -21,7 +21,7 @@ class PriceFetcher {
           .get
     } map {
       response =>
-        (response.body[JsValue].apply("msgArray")(0) \ "z").as[String].toDouble
+        ((response.body[JsValue] \ "msgArray") (0) \ "z").as[String].toDouble
     } recoverWith {
       case e: Exception =>
         e.printStackTrace()
@@ -50,7 +50,7 @@ class PriceFetcher {
           .get
     } map {
       response =>
-        response.body[JsValue].apply("data").as[List[ResHistoryPrice]].map(HistoryPrice(_))
+        (response.body[JsValue] \ "data").as[List[ResHistoryPrice]].map(HistoryPrice(_))
     }
   }
 
