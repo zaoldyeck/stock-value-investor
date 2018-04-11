@@ -4,10 +4,9 @@ import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL._
 import org.slf4j.{Logger, LoggerFactory}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class FinanceFetcher {
+class FinanceFetcher(implicit ec: ExecutionContext) {
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
   //  def getFinanceReport(id: String, fromYear: Int, fromSeason: Int, toYear: Int, toSeason: Int): Future[FinanceReport] = {
   //    Http.client.url(s"https://statementdog.com/api/v1/fundamentals/$id/$fromYear/$fromSeason/$toYear/$toSeason").get.map {
@@ -25,15 +24,15 @@ class FinanceFetcher {
         val PER: Double = doc >> text("body > table:nth-child(3) > tbody > tr > td:nth-child(3) > table > tbody > tr > td > table:nth-child(1) > tbody > tr > td > table > tbody > tr:nth-child(5) > td:nth-child(6)") toDigit
         val minROA: Double = (doc >> text("body > table:nth-child(3) > tbody > tr > td:nth-child(3) > table > tbody > tr > td > table.solid_1_padding_3_0_tbl > tbody > tr:nth-child(8) > td:nth-child(4)")).toDigit
         Finance(id, PER, minROA)
-    } recover {
+    } recoverWith {
       case e: Exception =>
         e.printStackTrace()
-        //getFinanceFromGoodinfo(id, duration)
-        Finance(id, 0, 0)
+        getFinanceFromGoodinfo(id, duration)
     }
   }
 
-  def getFinance(id: String, year: Int): Future[Finance] = {
+  def getFinance(id: String, year: Int = 0): Future[Finance] = {
+    Thread.sleep(2000)
     for {
       response <- Http.client.url("http://mops.twse.com.tw/mops/web/t05st22_q1").get().flatMap {
         response =>
@@ -43,7 +42,7 @@ class FinanceFetcher {
               "run" -> "Y",
               "step" -> "1",
               "TYPEK" -> "sii",
-              "year" -> (year - 1911).toString,
+              "year" -> (if (year == 0) "" else (year - 1911).toString),
               "isnew" -> "false",
               "co_id" -> id.toString,
               "firstin" -> "1",
@@ -67,6 +66,7 @@ class FinanceFetcher {
     }
   } recoverWith {
     case e: Exception =>
+      logger.error("stock id: " + id)
       e.printStackTrace()
       getFinance(id, year)
   }

@@ -7,10 +7,9 @@ import net.ruippeixotog.scalascraper.dsl.DSL._
 import play.api.libs.json.JsValue
 import play.api.libs.ws.JsonBodyReadables._
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class PriceFetcher {
+class PriceFetcher(implicit ec: ExecutionContext) {
   def getRealTimePrice(id: String): Future[Double] = {
     Http.client.url(s"http://mis.twse.com.tw/stock/fibest.jsp?stock=$id").get.flatMap {
       response =>

@@ -1,10 +1,9 @@
 import play.api.libs.json._
 import play.api.libs.ws.JsonBodyReadables._
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class StockFetcher {
+class StockFetcher(implicit ec: ExecutionContext) {
   def getAllStocks: Future[List[Stock]] = {
     val stockFilters: Seq[String] = 1 to 31 map {
       number =>
