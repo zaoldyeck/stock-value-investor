@@ -7,7 +7,9 @@ class StockFetcherTest extends FunSuite {
 
   test("getAllStocks") {
     stockFetcher.getAllStocks.map {
-      stocks => assert(stocks.nonEmpty)
+      stocks =>
+        println(stocks.size)
+        assert(stocks.nonEmpty)
     }
   }
 }

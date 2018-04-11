@@ -7,7 +7,7 @@ object Http {
   system.registerOnTermination {
     System.exit(0)
   }
-  implicit private val materializer = ActorMaterializer()
+  implicit val materializer = ActorMaterializer()
   val client = StandaloneAhcWSClient()
 
   def terminate(): Unit = {

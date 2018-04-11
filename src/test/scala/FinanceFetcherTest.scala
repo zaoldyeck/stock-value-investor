@@ -4,20 +4,20 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class FinanceFetcherTest extends FunSuite {
   private val financeFetcher = new FinanceFetcher
-  private val stockId = "2330"
+  private val stockId = "4414"
 
   test("getFinanceFromGoodinfo") {
-    financeFetcher.getFinanceFromGoodinfo(stockId, Duration.ThreeYear).map(testResponse)
+    financeFetcher.getFinanceFromGoodinfo(stockId).map(testResponse)
   }
 
   test("getFinance") {
-    financeFetcher.getFinance(stockId, 2016).map(testResponse)
+    financeFetcher.getFinance(stockId).map(testResponse)
   }
 
   private def testResponse(finance: Finance) = {
     println(finance.toString)
     assert(finance.id == stockId)
-    assert(finance.PER.isInstanceOf[Double] && finance.PER != 0)
-    assert(finance.meanROA.isInstanceOf[Double] && finance.meanROA != 0)
+    assert(finance.ROA.isInstanceOf[Double] && finance.ROA != 0)
+    assert(finance.EPS.isInstanceOf[Double] && finance.EPS != 0)
   }
 }
