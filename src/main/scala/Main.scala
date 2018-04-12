@@ -26,17 +26,17 @@ object Main extends App {
         stock => financeFetcher.getFinanceFromGoodinfo(stock.id)
       })
     } yield {
-      case class StockFinance(id: String, ROA: Double, PER: Double)
-      case class StockPoint(id: String, ROA: Double, PER: Double, point: Int)
+      case class StockFinance(id: String, id2: String, ROA: Double, PER: Double)
+      case class StockPoint(id: String, id2: String, ROA: Double, PER: Double, point: Int)
 
       val stockFinances = prices zip finances map {
-        pzf => StockFinance(pzf._1.id, pzf._2.ROA, pzf._1.price / pzf._2.EPS)
+        pzf => StockFinance(pzf._1.id, pzf._2.id, pzf._2.ROA, pzf._1.price / pzf._2.EPS)
       }
       val pointByROA = stockFinances.sortBy(_.ROA).zipWithIndex.sortBy(_._1.id)
       val pointByPER = stockFinances.sortBy(-_.PER).zipWithIndex.sortBy(_._1.id)
       pointByROA zip pointByPER map {
         rzp =>
-          StockPoint(rzp._1._1.id, rzp._1._1.ROA, rzp._1._1.PER, rzp._1._2 + rzp._2._2)
+          StockPoint(rzp._1._1.id, rzp._2._1.id, rzp._1._1.ROA, rzp._1._1.PER, rzp._1._2 + rzp._2._2)
       } sortBy (-_.point) foreach println
     }
   } andThen {

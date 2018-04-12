@@ -3,6 +3,7 @@ import net.ruippeixotog.scalascraper.browser.{Browser, JsoupBrowser}
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL._
 import org.slf4j.{Logger, LoggerFactory}
+import play.api.libs.ws.ahc.AhcCurlRequestLogger
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -35,16 +36,19 @@ class FinanceFetcher(implicit ec: ExecutionContext) {
   }
 
   def getFinance(id: String, year: Int = 0): Future[Finance] = {
+    Thread.sleep(1000)
     Http.client.url("http://mops.twse.com.tw/mops/web/t05st22_q1").get().flatMap {
       response =>
-        Http.client.url("http://mops.twse.com.tw/mops/web/ajax_t05st22").addCookies(response.cookies: _*).post(
+        Http.client.url("http://mops.twse.com.tw/mops/web/ajax_t05st22").addCookies(response.cookies: _*)
+          //.withRequestFilter(AhcCurlRequestLogger())
+          .post(
           Map(
             "encodeURIComponent" -> "1",
             "run" -> "Y",
             "step" -> "1",
             "TYPEK" -> "sii",
             "year" -> (if (year == 0) "" else (year - 1911).toString),
-            "isnew" -> "false",
+            "isnew" -> (if (year == 0) "true" else "false"),
             "co_id" -> id.toString,
             "firstin" -> "1",
             "off" -> "1",
@@ -65,10 +69,12 @@ class FinanceFetcher(implicit ec: ExecutionContext) {
         */
         Finance(id, ROA, EPS)
     }
-  } recoverWith {
+  } recover {
     case e: Exception =>
+      logger.error("stock id: " + id)
       e.printStackTrace()
-      getFinance(id, year)
+      //getFinance(id, year)
+      Finance(id, 0, 0)
   }
 
 }
