@@ -4,7 +4,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class FinanceFetcherTest extends FunSuite {
   private val financeFetcher = new FinanceFetcher
-  private val stockId = "1311"
+  private val stockId = "4414"
 
   test("getFinanceFromGoodinfo") {
     financeFetcher.getFinanceFromGoodinfo(stockId).map(testResponse)
