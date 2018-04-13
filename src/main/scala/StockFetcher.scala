@@ -31,6 +31,8 @@ class StockFetcher(implicit ec: ExecutionContext) {
 
   implicit private val resStocksReads: Reads[ResStocks] = Json.reads[ResStocks]
 
-  case class Stock(id: String, name: String)
+
 
 }
+
+case class Stock(id: String, name: String)
