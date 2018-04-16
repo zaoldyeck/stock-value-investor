@@ -15,7 +15,7 @@ class FinanceFetcher(implicit ec: ExecutionContext) {
   //    }
   //  }
 
-  def getFinanceFromGoodinfo(id: String, duration: Duration = Duration.OneYear): Future[Finance] = {
+  def getFinanceFromGoodinfo(id: String, duration: TimeLimit = TimeLimit.OneYear): Future[Finance] = {
     Thread.sleep(2000)
     Http.client.url(s"https://goodinfo.tw/StockInfo/StockBzPerformance.asp?STOCK_ID=$id&YEAR_PERIOD=${duration.year}&RPT_CAT=M_YEAR")
       .addHttpHeaders("user-agent" -> "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36")

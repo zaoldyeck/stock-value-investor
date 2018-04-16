@@ -7,7 +7,7 @@ import net.ruippeixotog.scalascraper.dsl.DSL._
 import org.slf4j.{Logger, LoggerFactory}
 import play.api.libs.json.JsValue
 import play.api.libs.ws.JsonBodyReadables._
-import play.api.libs.ws.ahc.StandaloneAhcWSRequest
+import play.api.libs.ws.ahc.AhcCurlRequestLogger
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -38,10 +38,7 @@ class PriceFetcher(implicit ec: ExecutionContext) {
     val parameter = ids.map(id => s"tse_$id.tw").mkString("|")
     Http.client.url(s"http://mis.twse.com.tw/stock/fibest.jsp").get.flatMap {
       response =>
-        StandaloneAhcWSRequest(
-          Http.client,
-          s"http://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=$parameter&json=1&delay=0&_=${new Date().getTime}",
-          disableUrlEncoding = Some(true))(Http.materializer)
+        Http.client.url(s"http://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=$parameter&json=1&delay=0&_=${new Date().getTime}", disableUrlEncoding = true)
           //.withRequestFilter(AhcCurlRequestLogger())
           .addCookies(response.cookies: _*)
           .get
