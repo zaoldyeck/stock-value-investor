@@ -1,8 +1,7 @@
-import org.scalatest.FunSuite
+import org.scalatest.AsyncFunSuite
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
-class FinanceFetcherTest extends FunSuite {
+class FinanceFetcherTest extends AsyncFunSuite {
+  implicit val timeInterval = 1000
   private val financeFetcher = new FinanceFetcher
   private val stockId = "4414"
 

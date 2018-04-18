@@ -1,9 +1,7 @@
-import org.scalatest.FunSuite
+import org.scalatest.AsyncFunSuite
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
-class StockFetcherTest extends FunSuite {
-  private val stockFetcher = new StockFetcher()
+class StockFetcherTest extends AsyncFunSuite {
+  private val stockFetcher = new StockFetcher
 
   test("getAllStocks") {
     stockFetcher.getAllStocks.map {

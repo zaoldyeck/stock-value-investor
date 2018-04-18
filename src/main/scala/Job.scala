@@ -2,13 +2,13 @@ import java.io.{File, PrintWriter}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class Job(implicit ec: ExecutionContext) {
+class Job(implicit ec: ExecutionContext, timeInterval: Int) {
 
   def magicFormula(): Future[Unit] = {
     case class StockFinance(id: String, ROA: Double, PER: Double)
     case class StockPoint(id: String, ROA: Double, PER: Double, point: Int) {
       override def toString: String = {
-        s"$id,$ROA,$PER,$point\n"
+        s"$id,$ROA,$PER,$point,https://statementdog.com/analysis/tpe/$id,https://stock.cnyes.com/market/TSE:$id:STOCK\n"
       }
     }
 
@@ -16,13 +16,13 @@ class Job(implicit ec: ExecutionContext) {
     val financeFetcher = new FinanceFetcher
     val priceFetcher = new PriceFetcher
     val writer = new PrintWriter(new File("stock-rankings.csv"))
-    writer.write("id,ROA,PER,point\n")
+    writer.write("id,ROA,PER,point,statementdog,tradingview\n")
 
     {
       for {
         stocks <- stockFetcher.getAllStocks
         prices <-
-          Future.sequence(stocks.take(200).grouped(100).map {
+          Future.sequence(stocks.take(10).grouped(100).map {
             stocks => priceFetcher.getRealTimePrice(stocks.map(_.id))
           }) map (_.reduce(_ ::: _))
         finances <- Future.sequence(prices.map {

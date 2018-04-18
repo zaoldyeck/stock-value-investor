@@ -1,9 +1,7 @@
-import org.scalatest.FunSuite
+import org.scalatest.AsyncFunSuite
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
-class PriceFetcherTest extends FunSuite {
-  private val priceFetcher = new PriceFetcher()
+class PriceFetcherTest extends AsyncFunSuite {
+  private val priceFetcher = new PriceFetcher
 
   test("getRealTimePriceById") {
     priceFetcher.getRealTimePrice("2330").map {

@@ -7,7 +7,7 @@ import play.api.libs.ws.ahc.AhcCurlRequestLogger
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class FinanceFetcher(implicit ec: ExecutionContext) {
+class FinanceFetcher(implicit ec: ExecutionContext, timeInterval: Int) {
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
   //  def getFinanceReport(id: String, fromYear: Int, fromSeason: Int, toYear: Int, toSeason: Int): Future[FinanceReport] = {
   //    Http.client.url(s"https://statementdog.com/api/v1/fundamentals/$id/$fromYear/$fromSeason/$toYear/$toSeason").get.map {
@@ -15,8 +15,8 @@ class FinanceFetcher(implicit ec: ExecutionContext) {
   //    }
   //  }
 
-  def getFinanceFromGoodinfo(id: String, duration: TimeLimit = TimeLimit.OneYear): Future[Finance] = {
-    Thread.sleep(2000)
+  def getFinanceFromGoodinfo(id: String, duration: TimeLimit = TimeLimit.OneYear, timeInterval: Int = timeInterval): Future[Finance] = {
+    Thread.sleep(timeInterval)
     Http.client.url(s"https://goodinfo.tw/StockInfo/StockBzPerformance.asp?STOCK_ID=$id&YEAR_PERIOD=${duration.year}&RPT_CAT=M_YEAR")
       .addHttpHeaders("user-agent" -> "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36")
       .get.map {
@@ -32,12 +32,12 @@ class FinanceFetcher(implicit ec: ExecutionContext) {
       case e: Exception =>
         logger.error("stock id: " + id)
         e.printStackTrace()
-        getFinanceFromGoodinfo(id, duration)
+        getFinanceFromGoodinfo(id, duration, 2 * timeInterval)
     }
   }
 
-  def getFinance(id: String, year: Int = 0): Future[Finance] = {
-    Thread.sleep(5000)
+  def getFinance(id: String, year: Int = 0, timeInterval: Int = timeInterval): Future[Finance] = {
+    Thread.sleep(timeInterval)
     Http.client.url("http://mops.twse.com.tw/mops/web/t05st22_q1").get().flatMap {
       response =>
         Http.client.url("http://mops.twse.com.tw/mops/web/ajax_t05st22").addCookies(response.cookies: _*)
@@ -56,7 +56,7 @@ class FinanceFetcher(implicit ec: ExecutionContext) {
             "ifrs" -> "Y"))
     } map {
       response =>
-        def average(value: Double*): Double = value.sum / value.length
+        //def average(value: Double*): Double = value.sum / value.length
 
         val doc: Browser#DocumentType = JsoupBrowser().parseString(response.body)
         val ROA: Double = doc >?> text("body > center:nth-child(6) > table > tbody > tr:nth-child(13) > td:nth-child(5)") toDigit
@@ -74,7 +74,7 @@ class FinanceFetcher(implicit ec: ExecutionContext) {
     case e: Exception =>
       logger.error("stock id: " + id)
       e.printStackTrace()
-      getFinance(id, year)
+      getFinance(id, year, 2 * timeInterval)
   }
 }
 

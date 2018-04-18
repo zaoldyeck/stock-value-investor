@@ -25,9 +25,10 @@ object Http {
   }
 
   class StandaloneAhcWSClientWithProxyPool {
-    implicit val materializer = ActorMaterializer()
+    private implicit val materializer = ActorMaterializer()
     private val client = StandaloneAhcWSClient()
 
+    /*
     private val freeProxies: immutable.IndexedSeq[(String, Int)] = Await.result(
       client.url("https://free-proxy-list.net/").get().map {
         response =>
@@ -45,13 +46,14 @@ object Http {
     private def getProxy: (String, Int) = synchronized {
       infiniteIterator.next()
     }
+    */
 
     def url(url: String, disableUrlEncoding: Boolean = false): StandaloneAhcWSRequest = {
-      val (ip, port) = getProxy
+      //val (ip, port) = getProxy
 
       StandaloneAhcWSRequest(client = client,
         url = url,
-        //proxyServer = Some(DefaultWSProxyServer("170.84.51.74", 53281)),
+        //proxyServer = Some(DefaultWSProxyServer("118.171.31.75", 3128)),
         disableUrlEncoding = Some(disableUrlEncoding))
     }
 
