@@ -16,17 +16,17 @@ class Job(implicit ec: ExecutionContext, timeInterval: Int) {
     val financeFetcher = new FinanceFetcher
     val priceFetcher = new PriceFetcher
     val writer = new PrintWriter(new File("stock-rankings.csv"))
-    writer.write("id,ROA,PER,point,statementdog,tradingview\n")
+    writer.write("id,ROA,PER,score,statementdog,tradingview\n")
 
     {
       for {
         stocks <- stockFetcher.getAllStocks
         prices <-
-          Future.sequence(stocks.take(10).grouped(100).map {
+          Future.sequence(stocks.grouped(100).map {
             stocks => priceFetcher.getRealTimePrice(stocks.map(_.id))
           }) map (_.reduce(_ ::: _))
         finances <- Future.sequence(prices.map {
-          price => financeFetcher.getFinanceFromGoodinfo(price.id)
+          price => financeFetcher.getFinance(price.id)
         })
       } yield {
         val stockFinances = prices zip finances map {
