@@ -23,7 +23,7 @@ or
 sbt assembly (compiling)
 java -jar stock-value-investor-assembly-1.0.jar >> log 2>&1 &
 ```
-> Running need over than 8 hours if you fetch all stocks. Because data source API will block your IP if you fetch data too frequent.
+> Running need over than 1 day if you fetch all stocks. Because data source API will block your IP if you fetch data too frequent.
 ## Output
 stock-rankings.csv
 

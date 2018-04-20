@@ -6,9 +6,9 @@ class Job(implicit ec: ExecutionContext, timeInterval: Int) {
 
   def magicFormula(): Future[Unit] = {
     case class StockFinance(id: String, ROA: Double, PER: Double)
-    case class StockPoint(id: String, ROA: Double, PER: Double, point: Int) {
+    case class StockPoint(id: String, name: String, ROA: Double, PER: Double, point: Int) {
       override def toString: String = {
-        s"$id,$ROA,$PER,$point,https://statementdog.com/analysis/tpe/$id,https://stock.cnyes.com/market/TSE:$id:STOCK\n"
+        s"$id,$name,$ROA,$PER,$point,https://statementdog.com/analysis/tpe/$id,https://stock.cnyes.com/market/TSE:$id:STOCK\n"
       }
     }
 
@@ -16,7 +16,7 @@ class Job(implicit ec: ExecutionContext, timeInterval: Int) {
     val financeFetcher = new FinanceFetcher
     val priceFetcher = new PriceFetcher
     val writer = new PrintWriter(new File("stock-rankings.csv"))
-    writer.write("id,ROA,PER,score,statementdog,tradingview\n")
+    writer.write("id,name,ROA,PER,score,statementdog,tradingview\n")
 
     {
       for {
@@ -26,7 +26,7 @@ class Job(implicit ec: ExecutionContext, timeInterval: Int) {
             stocks => priceFetcher.getRealTimePrice(stocks.map(_.id))
           }) map (_.reduce(_ ::: _))
         finances <- Future.sequence(prices.map {
-          price => financeFetcher.getFinance(price.id)
+          price => financeFetcher.getFinanceFromGoodinfo(price.id)
         })
       } yield {
         val stockFinances = prices zip finances map {
@@ -35,9 +35,10 @@ class Job(implicit ec: ExecutionContext, timeInterval: Int) {
         val pointByROA = stockFinances.sortBy(_.ROA).zipWithIndex.sortBy(_._1.id)
         val pointByPER = stockFinances.sortBy(-_.PER).zipWithIndex.sortBy(_._1.id)
 
+        val idToName = stocks.map(s => s.id -> s.name).toMap
         pointByROA zip pointByPER map {
           rzp =>
-            StockPoint(rzp._1._1.id, rzp._1._1.ROA, rzp._1._1.PER, rzp._1._2 + rzp._2._2)
+            StockPoint(rzp._1._1.id, idToName.getOrElse(rzp._1._1.id, ""), rzp._1._1.ROA, rzp._1._1.PER, rzp._1._2 + rzp._2._2)
         } sortBy (-_.point) foreach {
           stockPoint =>
             writer.write(stockPoint.toString)
