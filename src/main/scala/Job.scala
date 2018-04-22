@@ -1,5 +1,6 @@
 import java.io.{File, PrintWriter}
 
+import scala.collection.immutable
 import scala.concurrent.{ExecutionContext, Future}
 
 class Job(implicit ec: ExecutionContext, timeInterval: Int) {
@@ -25,9 +26,17 @@ class Job(implicit ec: ExecutionContext, timeInterval: Int) {
           Future.sequence(stocks.grouped(100).map {
             stocks => priceFetcher.getRealTimePrice(stocks.map(_.id))
           }) map (_.reduce(_ ::: _))
-        finances <- Future.sequence(prices.map {
+        finances <-
+          Future.sequence(prices.grouped(50).map {
+            prices =>
+              Thread.sleep(120000)
+              prices.map(p => financeFetcher.getFinanceFromGoodinfo(p.id))
+          } reduce (_ ::: _))
+        /*
+          Future.sequence(prices.map {
           price => financeFetcher.getFinanceFromGoodinfo(price.id)
         })
+        */
       } yield {
         val stockFinances = prices zip finances map {
           pzf => StockFinance(pzf._1.id, pzf._2.ROA, pzf._1.price / pzf._2.EPS)

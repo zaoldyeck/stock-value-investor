@@ -10,7 +10,7 @@ object Main extends App {
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
   //implicit val ec = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(2))
   implicit val ec = ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor())
-  implicit val timeInterval = 60000
+  implicit val timeInterval = 0
 
   new Job().magicFormula andThen {
     case _ => Http.terminate()
