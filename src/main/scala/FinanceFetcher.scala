@@ -7,16 +7,17 @@ import play.api.libs.ws.ahc.AhcCurlRequestLogger
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class FinanceFetcher(implicit ec: ExecutionContext, timeInterval: Int) {
+class FinanceFetcher(implicit ec: ExecutionContext, timeInterval: TimeInterval) {
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
+  private val random = new scala.util.Random
   //  def getFinanceReport(id: String, fromYear: Int, fromSeason: Int, toYear: Int, toSeason: Int): Future[FinanceReport] = {
   //    Http.client.url(s"https://statementdog.com/api/v1/fundamentals/$id/$fromYear/$fromSeason/$toYear/$toSeason").get.map {
   //
   //    }
   //  }
 
-  def getFinanceFromGoodinfo(id: String, duration: TimeLimit = TimeLimit.OneYear, timeInterval: Int = timeInterval): Future[Finance] = {
-    Thread.sleep(timeInterval)
+  def getFinanceFromGoodinfo(id: String, duration: TimeLimit = TimeLimit.OneYear): Future[Finance] = {
+    Thread.sleep(timeInterval.start + random.nextInt(timeInterval.end - timeInterval.start + 1))
     Http.client.url(s"https://goodinfo.tw/StockInfo/StockBzPerformance.asp?STOCK_ID=$id&YEAR_PERIOD=${duration.year}&RPT_CAT=M_YEAR")
       .addHttpHeaders("user-agent" -> "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36")
       .get.map {
@@ -32,12 +33,12 @@ class FinanceFetcher(implicit ec: ExecutionContext, timeInterval: Int) {
       case e: Exception =>
         logger.error("stock id: " + id)
         e.printStackTrace()
-        getFinanceFromGoodinfo(id, duration, 2 * timeInterval)
+        getFinanceFromGoodinfo(id, duration)
     }
   }
 
-  def getFinance(id: String, year: Int = 0, timeInterval: Int = timeInterval): Future[Finance] = {
-    Thread.sleep(timeInterval)
+  def getFinance(id: String, year: Int = 0): Future[Finance] = {
+    Thread.sleep(timeInterval.start + random.nextInt(timeInterval.end - timeInterval.start + 1))
     Http.client.url("http://mops.twse.com.tw/mops/web/t05st22_q1").get().flatMap {
       response =>
         Http.client.url("http://mops.twse.com.tw/mops/web/ajax_t05st22").addCookies(response.cookies: _*)
@@ -74,7 +75,7 @@ class FinanceFetcher(implicit ec: ExecutionContext, timeInterval: Int) {
     case e: Exception =>
       logger.error("stock id: " + id)
       e.printStackTrace()
-      getFinance(id, year, 2 * timeInterval)
+      getFinance(id, year)
   }
 }
 

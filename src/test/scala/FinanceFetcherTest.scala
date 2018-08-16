@@ -1,7 +1,7 @@
 import org.scalatest.AsyncFunSuite
 
 class FinanceFetcherTest extends AsyncFunSuite {
-  implicit val timeInterval = 1000
+  implicit val timeInterval = TimeInterval(10000, 60000)
   private val financeFetcher = new FinanceFetcher
   private val stockId = "4414"
 

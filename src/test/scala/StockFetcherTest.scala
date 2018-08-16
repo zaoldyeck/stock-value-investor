@@ -10,4 +10,12 @@ class StockFetcherTest extends AsyncFunSuite {
         assert(stocks.nonEmpty)
     }
   }
+
+  test("getPublicStocks") {
+    stockFetcher.getPublicStocks.map {
+      stocks =>
+        println(stocks.size)
+        assert(stocks.nonEmpty)
+    }
+  }
 }

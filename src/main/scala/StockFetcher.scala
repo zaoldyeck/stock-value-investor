@@ -31,8 +31,17 @@ class StockFetcher(implicit ec: ExecutionContext) {
 
   implicit private val resStocksReads: Reads[ResStocks] = Json.reads[ResStocks]
 
-
-
+  def getPublicStocks: Future[List[Stock]] = {
+    Http.client.url("http://quality.data.gov.tw/dq_download_json.php?nid=18419&md5_url=4932a781923479c4c782e8a07078d9e9").get.map {
+      response =>
+        response.body[JsValue].as[List[JsValue]].map {
+          jsValue =>
+            val id = (jsValue \ "公司代號").as[String]
+            val name = (jsValue \ "公司名稱").as[String]
+            Stock(id, name)
+        }
+    }
+  }
 }
 
 case class Stock(id: String, name: String)
