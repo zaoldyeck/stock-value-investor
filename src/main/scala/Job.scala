@@ -65,36 +65,41 @@ class Job(implicit ec: ExecutionContext, timeInterval: TimeInterval) {
   }
 
   def magicFormulaByWespai(): Future[Unit] = {
-    case class MagicFormulaRanking(id: String, name: String, price: Double, PER: Double, ROE: Double, score: Double) {
+    case class MagicFormulaRanking(id: String, name: String, price: Double, PER: Double, ROA: Double, score: Double) {
       override def toString: String = {
-        s"$id,$name,$price,$PER,$ROE,$score,https://tw.stock.yahoo.com/d/s/earning_$id.html,https://stock.cnyes.com/market/TSE:$id:STOCK,https://statementdog.com/analysis/tpe/$id\n"
+        s"$id,$name,$price,$PER,$ROA,$score," +
+          s"https://tw.stock.yahoo.com/d/s/earning_$id.html," +
+          s"http://pchome.megatime.com.tw/stock/sid$id.html," +
+          s"https://goodinfo.tw/StockInfo/StockBzPerformance.asp?STOCK_ID=$id," +
+          s"https://statementdog.com/analysis/tpe/$id," +
+          s"https://stock.cnyes.com/market/TSE:$id:STOCK\n"
       }
     }
 
-    case class ResStock(id: String, name: String, price: Double, PER: Double, ROE: Double)
+    case class ResStock(id: String, name: String, price: Double, PER: Double, monthlyRevenueYoY: Double, quarterlyROA: Double, quarterlyNetIncomeYoY: Double, fourQuartersROA: Double)
 
-    val data = Map("qry[]" -> Seq("dv", "ep", "3zcra10"),
-      "id[]" -> Seq("dv", "ep", "3zcra10"),
-      "val[]" -> Seq("0;12000", "-30000;30000", "-3000;3000"))
+    val data = Map("qry[]" -> Seq("dv", "ep", "zch4", "zcr10", "zcr15", "zcrax10"),
+      "id[]" -> Seq("dv", "ep", "zch4", "zcr10", "zcr15", "zcrax10"),
+      "val[]" -> Seq("0;12000", "-30000;30000", "-800000;1500000", "-30000;30000", "-500000;10000000", "-30000;30000"))
 
     Http.client.url("https://stock.wespai.com/pick/choice").post(data).map {
       response =>
         val writer = new PrintWriter(new File(s"magic_formula_rankings_${java.time.LocalDate.now}.csv"))
-        writer.write("id,name,price,PER,ROE,score,yahoo,tradingview,statementdog\n")
+        writer.write("id,name,price,PER,ROA,score,yahoo,pchome,goodinfo,statementdog,tradingview\n")
 
-        val resStocks = response.body[JsValue].as[List[(String, String, String, String, String)]].map {
+        val resStocks = response.body[JsValue].as[List[(String, String, String, String, String, String, String, String)]].map {
           resStock =>
-            val (id, name, price, per, roe) = resStock
-            ResStock(id, name, price.toDouble, per.toDouble, roe.toDouble)
-        } filter (resStock=>resStock.PER > 0 && resStock.ROE > 0)
+            val (id, name, price, per, monthlyRevenueYoY, quarterlyROA, quarterlyNetIncomeYoY, fourQuartersROA) = resStock
+            ResStock(id, name, price.toDouble, per.toDouble, monthlyRevenueYoY.toDouble, quarterlyROA.toDouble, quarterlyNetIncomeYoY.toDouble, fourQuartersROA.toDouble)
+        } filter (resStock => resStock.PER > 0 && resStock.monthlyRevenueYoY > 0 && resStock.quarterlyROA > 0 && resStock.quarterlyNetIncomeYoY > 0 && resStock.fourQuartersROA > 0)
 
         val scoreByPER = resStocks.sortBy(-_.PER).zipWithIndex.sortBy(_._1.id)
-        val scoreByROE = resStocks.sortBy(_.ROE).zipWithIndex.sortBy(_._1.id)
+        val scoreByROA = resStocks.sortBy(_.fourQuartersROA).zipWithIndex.sortBy(_._1.id)
 
-        scoreByPER zip scoreByROE map {
+        scoreByPER zip scoreByROA map {
           pzr =>
             val stock = pzr._1._1
-            MagicFormulaRanking(stock.id, stock.name, stock.price, stock.PER, stock.ROE, pzr._1._2 + pzr._2._2)
+            MagicFormulaRanking(stock.id, stock.name, stock.price, stock.PER, stock.fourQuartersROA, pzr._1._2 + pzr._2._2)
         } sortBy (-_.score) foreach {
           magicFormulaRanking =>
             writer.write(magicFormulaRanking.toString)
@@ -104,27 +109,32 @@ class Job(implicit ec: ExecutionContext, timeInterval: TimeInterval) {
   }
 
   def FCFRankings(): Future[Unit] = {
-    case class FCFRanking(id: String, name: String, price: Double, FCF: Double, ratio: Double) {
+    case class FCFRanking(id: String, name: String, price: Double, monthlyRevenueYoY: Double, quarterlyROA: Double, quarterlyNetIncomeYoY: Double, fourQuartersROA: Double, FCF: Double, ratio: Double) {
       override def toString: String = {
-        s"$id,$name,$price,$FCF,$ratio,https://tw.stock.yahoo.com/d/s/earning_$id.html,https://stock.cnyes.com/market/TSE:$id:STOCK,https://statementdog.com/analysis/tpe/$id\n"
+        s"$id,$name,$price,$FCF,$ratio," +
+          s"https://tw.stock.yahoo.com/d/s/earning_$id.html," +
+          s"http://pchome.megatime.com.tw/stock/sid$id.html," +
+          s"https://goodinfo.tw/StockInfo/StockBzPerformance.asp?STOCK_ID=$id," +
+          s"https://statementdog.com/analysis/tpe/$id," +
+          s"https://stock.cnyes.com/market/TSE:$id:STOCK\n"
       }
     }
 
-    val data = Map("qry[]" -> Seq("dv", "zcpx3"),
-      "id[]" -> Seq("dv", "zcpx3"),
-      "val[]" -> Seq("0;12000", "-800000;1500000"))
+    val data = Map("qry[]" -> Seq("dv", "zch4", "zcr10", "zcr15", "zcrax10", "zcpx3"),
+      "id[]" -> Seq("dv", "zch4", "zcr10", "zcr15", "zcrax10", "zcpx3"),
+      "val[]" -> Seq("0;12000", "-800000;1500000", "-30000;30000", "-500000;10000000", "-30000;30000", "-800000;1500000"))
 
     Http.client.url("https://stock.wespai.com/pick/choice").post(data).map {
       response =>
         val writer = new PrintWriter(new File(s"fcf_rankings_${java.time.LocalDate.now}.csv"))
-        writer.write("id,name,price,FCF,ratio,yahoo,tradingview,statementdog\n")
+        writer.write("id,name,price,FCF,ratio,yahoo,pchome,goodinfo,statementdog,tradingview\n")
 
-        response.body[JsValue].as[List[(String, String, String, String)]].map {
+        response.body[JsValue].as[List[(String, String, String, String, String, String, String, String)]].map {
           resStock =>
-            val (id, name, price, fcf) = resStock
+            val (id, name, price, monthlyRevenueYoY, quarterlyROA, quarterlyNetIncomeYoY, fourQuartersROA, fcf) = resStock
             val ratio = price.toDouble / fcf.toDouble
-            FCFRanking(id, name, price.toDouble, fcf.toDouble, ratio)
-        } filter (_.FCF > 0) sortBy (_.ratio) foreach {
+            FCFRanking(id, name, price.toDouble, monthlyRevenueYoY.toDouble, quarterlyROA.toDouble, quarterlyNetIncomeYoY.toDouble, fourQuartersROA.toDouble, fcf.toDouble, ratio)
+        } filter (fcfRanking => fcfRanking.monthlyRevenueYoY > 0 && fcfRanking.quarterlyROA > 0 && fcfRanking.quarterlyNetIncomeYoY > 0 && fcfRanking.fourQuartersROA > 0 && fcfRanking.FCF > 0) sortBy (_.ratio) foreach {
           fCFRanking =>
             writer.write(fCFRanking.toString)
         }
